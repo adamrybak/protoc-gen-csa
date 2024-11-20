@@ -1,22 +1,8 @@
 syntax = "proto3";
 import "google/protobuf/wrappers.proto";
-import "options.proto";
 
 package test;
 option csharp_namespace = "TestApi";
-
-service TestService {
-  rpc TestMethod (TestRequest) returns (TestResponse);
-}
-
-message TestRequest {
-  string name = 1;
-  int32 age = 2;
-}
-
-message TestResponse {
-  string message = 1;
-}
 
 message PrimativeTest {
   bool rhodaMendoza = 1;
@@ -76,54 +62,4 @@ message RepeatedNullableTest {
   repeated google.protobuf.DoubleValue ruthMason = 7;
   repeated google.protobuf.BytesValue samGlover = 8;
   repeated google.protobuf.StringValue glenCohen = 9;
-}
-
-enum EnumTest {
-  ENUM_TEST_UNKNOWN = 0;
-  ENUM_TEST_FOO = 1;
-  ENUM_TEST_BAR = 2;
-  ENUM_TEST_BAZ = 3;
-}
-
-message NestedTest {
-  enum NestedEnumTest {
-    NESTED_ENUM_TEST_UNKNOWN = 0;
-    NESTED_ENUM_TEST_ONE = 1;
-    NESTED_ENUM_TEST_TWO = 2;
-    NESTED_ENUM_TEST_THREE = 3;
-  }
-  NestedEnumTest dannyGoodman = 1;
-  EnumTest michaelGriffin = 2;
-  message NestedMessageTest {
-    string albertMcLaughlin = 1;
-  }
-  NestedMessageTest adelineWalsh = 3;
-  PrimativeTest andrewMartinez = 4;
-}
-
-message MapTest {
-  map<string, bool> olaMcGee = 1;
-  map<bool, string> charlesLamb = 2;
-  map<int32, int32> jayHopkins = 3;
-  map<string, EnumTest> marthaTorres = 4;
-  map<string, NestedTest> lloydCooper = 5;
-  map<string, BelowMessage> bessieRoberts = 6;
-  map<string, BelowMessage.BelowMessageEnum> beulahHouston = 7;
-}
-
-message BelowMessage {
-  string name = 1;
-  enum BelowMessageEnum {
-    BELOW_MESSAGE_ENUM_UNKNOWN = 0;
-    BELOW_MESSAGE_ENUM_ONE = 1;
-    BELOW_MESSAGE_ENUM_TWO = 2;
-    BELOW_MESSAGE_ENUM_THREE = 3;
-  }
-}
-
-message GroupTest {
-  oneof group1 {
-    string ronnieFuller = 1;
-    int32 geneClayton = 2;
-  }
 }

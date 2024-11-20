@@ -1,7 +1,7 @@
 use super::{Property, PropertyFormat, PropertyOptions};
 use crate::google::protobuf::{compiler::CodeGeneratorRequest, field_descriptor_proto, DescriptorProto, EnumDescriptorProto, FieldDescriptorProto, FileDescriptorProto};
 use convert_case::{Case, Casing};
-use std::{borrow::Borrow, collections::HashSet, fs, hash::Hash};
+use std::{borrow::Borrow, collections::HashSet, hash::Hash};
 
 pub struct TypeMap {
     records: HashSet<TypeRecord>,
@@ -10,7 +10,6 @@ pub struct TypeMap {
 impl TypeMap {
     pub fn new(request: &CodeGeneratorRequest) -> Self {
         let mut this = TypeMap { records: HashSet::new() };
-
         this.insert(field_descriptor_proto::Type::Bool.as_str_name(), None, None, BaseType::Bool, false);
         this.insert(field_descriptor_proto::Type::Int32.as_str_name(), None, None, BaseType::Int, false);
         this.insert(field_descriptor_proto::Type::Int64.as_str_name(), None, None, BaseType::Long, false);
@@ -67,7 +66,7 @@ impl TypeMap {
         }
     }
 
-    pub fn type_name(field: &FieldDescriptorProto) -> &str {
+    pub fn proto_name(field: &FieldDescriptorProto) -> &str {
         match field.r#type() {
             field_descriptor_proto::Type::Enum | field_descriptor_proto::Type::Message => field.type_name(),
             _ => field.r#type().as_str_name(),
@@ -118,8 +117,16 @@ impl TypeMap {
         let class_name = message_type.name().to_case(Case::Pascal);
         let map_entry = message_type.options.as_ref().is_some_and(|o| o.map_entry());
         if map_entry {
-            let key_type_record = message_type.field.get(0).and_then(|f| Some(self.get(Self::type_name(f)).to_owned())).expect(&format!("unknown key field: {}", message_type.name()));
-            let value_type_record = message_type.field.get(1).and_then(|f| Some(self.get(Self::type_name(f)).to_owned())).expect(&format!("unknown value field: {}", message_type.name()));
+            let key_type_record = message_type
+                .field
+                .get(0)
+                .and_then(|f| Some(self.get(Self::proto_name(f)).to_owned()))
+                .expect(&format!("unknown key field: {}", message_type.name()));
+            let value_type_record = message_type
+                .field
+                .get(1)
+                .and_then(|f| Some(self.get(Self::proto_name(f)).to_owned()))
+                .expect(&format!("unknown value field: {}", message_type.name()));
             self.insert(&proto_name, namespace, parent_name, BaseType::Map(Box::new(key_type_record), Box::new(value_type_record)), false);
         }
         let package = format!("{}.{}", package, message_type.name());
@@ -130,7 +137,7 @@ impl TypeMap {
     }
 
     pub fn property(&mut self, field: &FieldDescriptorProto) -> Property {
-        let type_record = self.get(Self::type_name(field));
+        let type_record = self.get(Self::proto_name(field));
         let repeated = field.label() == field_descriptor_proto::Label::Repeated && !matches!(type_record.base_type, BaseType::Map(..));
         let name = field.name().to_case(Case::Pascal);
         let mut options = PropertyOptions::default();

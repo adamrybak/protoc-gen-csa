@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\input\test.proto" ProtoRoot="..\input" GrpcServices="Both" />
-    <Protobuf Include="..\input\*.proto" ProtoRoot="..\input" GrpcServices="None" />
+    <Protobuf Include="..\input\primatives.proto" ProtoRoot="..\input" GrpcServices="Both" />
+    <!-- <Protobuf Include="..\input\*.proto" ProtoRokot="..\input" GrpcServices="None" /> -->
   </ItemGroup>
 </Project>

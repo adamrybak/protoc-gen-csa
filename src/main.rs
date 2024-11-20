@@ -1,4 +1,4 @@
-use generator::{GeneratorModel, GeneratorPartial, TypeMap};
+use generator::{Generator, GeneratorModel, GeneratorPartial, TypeMap};
 use google::protobuf::compiler::{CodeGeneratorRequest, CodeGeneratorResponse};
 use prost::Message;
 use std::io::{self, Read, Write};
@@ -20,8 +20,7 @@ fn main() -> io::Result<()> {
     let mut response = CodeGeneratorResponse::default();
 
     let type_map = TypeMap::new(&request);
-    GeneratorPartial::generate(&request, &type_map, &mut response);
-    GeneratorModel::generate(&request, &type_map, &mut response);
+    Generator::generate(&request, &mut response, &type_map);
 
     let mut buf = Vec::new();
     response.encode(&mut buf)?;

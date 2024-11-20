@@ -1,5 +1,5 @@
 edition = "2021"
-max_width = 260
+max_width = 220
 format_strings = true
 group_imports = "One"
 imports_granularity = "Crate"

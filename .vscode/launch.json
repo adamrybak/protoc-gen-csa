@@ -9,10 +9,10 @@
       "program": "protoc.exe",
       "args": [
         "--plugin=protoc-gen-csa.exe", //
-        "--csa_out=../../test/output/",
+        "--csa_out=../../test/output/CodeGen/",
         "--proto_path=${env:USERPROFILE}\\.nuget\\packages\\google.protobuf.tools\\3.28.3\\tools",
         "--proto_path=../../test/input/",
-        "test.proto"
+        "primatives.proto"
       ],
       "preLaunchTask": "build debug"
     }

@@ -6,6 +6,7 @@ edition = "2021"
 
 [dependencies]
 convert_case = "0.6.0"
+indoc = "2.0.5"
 prost = "0.13.3"
 
 [build-dependencies]

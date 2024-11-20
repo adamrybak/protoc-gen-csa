@@ -1,5 +1,5 @@
 use super::{BaseType, TypeRecord};
-use crate::google::protobuf::field_options;
+use crate::google::protobuf::field_options::{self, FormatType};
 
 #[derive(Clone)]
 pub enum PropertyFormat {
@@ -152,12 +152,10 @@ impl<'a> Property<'a> {
     }
 
     pub fn default_value(&self) -> Option<&'static str> {
-        if self.nullable() {
-            None
-        } else if self.repeated() || matches!(self.type_record.base_type, BaseType::Map(..)) {
-            Some("[]")
-        } else {
-            None
+        match (self.nullable(), self.repeated(), &self.type_record.base_type, &self.options().format) {
+            (false, true, ..) | (.., BaseType::Map(..), _) => Some("[]"),
+            (false, _, BaseType::String, PropertyFormat::None) => Some("string.Empty"),
+            _ => None,
         }
     }
 
