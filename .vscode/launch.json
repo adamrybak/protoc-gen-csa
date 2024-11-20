@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch",
+      "type": "lldb",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/target/debug",
+      "program": "protoc.exe",
+      "args": [
+        "--plugin=protoc-gen-csa.exe", //
+        "--csa_out=../../test/output/",
+        "--proto_path=${env:USERPROFILE}\\.nuget\\packages\\google.protobuf.tools\\3.28.3\\tools",
+        "--proto_path=../../test/input/",
+        "test.proto"
+      ],
+      "preLaunchTask": "build debug"
+    }
+  ]
+}

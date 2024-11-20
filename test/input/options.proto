@@ -1,0 +1,34 @@
+syntax = "proto3";
+import "google/protobuf/descriptor.proto";
+
+package opt;
+
+enum FormatType {
+  NONE = 0;
+  UNIX_TIME_SECONDS = 1;
+  UNIX_TIME_MILLISECONDS = 2;
+  GUID = 3;
+  DATE_TIME = 4;
+  DATE_TIME_OFFSET = 5;
+  DATE_ONLY = 6;
+  TIME_ONLY = 7;
+  TIME_SPAN = 8;
+}
+
+extend google.protobuf.FieldOptions {
+  optional bool required = 36607;
+  optional double eq = 36608;
+  optional double ne = 36609;
+  optional double lt = 36610;
+  optional double lte = 36611;
+  optional double gt = 36612;
+  optional double gte = 36613;
+  optional uint64 len = 36614;
+  optional uint64 min_len = 36615;
+  optional uint64 max_len = 36616;
+  optional uint64 count = 36617;
+  optional uint64 min_count = 36618;
+  optional uint64 max_count = 36619;
+  optional FormatType key_format = 36620;
+  optional FormatType format = 36621;
+}

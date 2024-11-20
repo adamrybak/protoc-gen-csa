@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "clean",
+      "group": "build",
+      "type": "shell",
+      "command": "@echo off && for /r %i in (Cargo.toml) do ( if exist \"%~dpitarget\" rmdir /s /q \"%~dpitarget\" >nul )"
+    },
+    {
+      "label": "build debug",
+      "group": "build",
+      "type": "shell",
+      "command": "cargo build"
+    },
+    {
+      "label": "build release",
+      "group": "build",
+      "type": "shell",
+      "options": { "env": { "RUSTFLAGS": "-Zlocation-detail=none -Zfmt-debug=none" } },
+      "command": "cargo +nightly build -Z build-std=std,panic_abort -Z build-std-features=panic_immediate_abort --target x86_64-pc-windows-msvc --release"
+    },
+    {
+      "label": "build dotnet",
+      "group": "build",
+      "type": "process",
+      "options": { "cwd": "test/output" },
+      "command": "dotnet",
+      "args": ["build", "-p:GenerateFullPaths=true", "-clp:NoSummary"]
+    }
+  ]
+}
