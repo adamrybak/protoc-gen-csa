@@ -1,7 +1,10 @@
-use super::{GeneratorPartial, TypeMap};
-use crate::google::protobuf::{
-    compiler::{code_generator_response, CodeGeneratorResponse},
-    DescriptorProto, FileDescriptorProto,
+use super::{property::PropertyFormat, BaseType, GeneratorPartial, TypeMap};
+use crate::{
+    google::protobuf::{
+        compiler::{code_generator_response, CodeGeneratorResponse},
+        DescriptorProto, FieldDescriptorProto, FileDescriptorProto,
+    },
+    utility::IndentLines,
 };
 use convert_case::{Case, Casing};
 use indoc::formatdoc;
@@ -12,21 +15,21 @@ pub struct GeneratorModel<'a> {
     type_map: &'a TypeMap,
     file: &'a FileDescriptorProto,
     file_name: String,
-    namespace: String,
+    partial_namespace: String,
     model_namespace: String,
 }
 
 impl<'a> GeneratorModel<'a> {
     pub fn generate(response: &'a mut CodeGeneratorResponse, type_map: &'a TypeMap, file: &'a FileDescriptorProto) {
         let file_name = Self::file_name(file);
-        let namespace = GeneratorPartial::namespace(file);
+        let partial_namespace = GeneratorPartial::namespace(file);
         let model_namespace = Self::namespace(file);
         let this = GeneratorModel {
             response,
             type_map,
             file,
             file_name,
-            namespace,
+            partial_namespace,
             model_namespace,
         };
         let content = this.write_content();
@@ -69,7 +72,8 @@ impl<'a> GeneratorModel<'a> {
             //     Source: {input_file_name}
             // </auto-generated>
             //----------------------------------------------------------------------------------------------------
-            
+            #nullable enable
+
             namespace {model_namespace};"#
         )
     }
@@ -79,18 +83,85 @@ impl<'a> GeneratorModel<'a> {
     }
 
     fn write_class(&self, message_type: &DescriptorProto) -> String {
-        let namespace = &self.namespace;
-        let model_namespace = &self.model_namespace;
+        let partial_namespace = &self.partial_namespace;
         let class_name = message_type.name().to_case(Case::Pascal);
+        let properties = self.write_properties(message_type);
+        let methods = self.write_methods(message_type);
+        let regions = [properties, methods].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join("\n\n").indent_subsequent_lines(1);
         formatdoc!(
             r#"
-            public partial class {class_name} : CsaCommon.IMessageable<{namespace}.{class_name}>
+            public partial class {class_name} : CsaCommon.IMessageable<{partial_namespace}.{class_name}>
             {{
-                public {namespace}.{class_name} ToMessage()
-                {{
-                    throw new NotImplementedException();
-                }}
+                {regions}
             }}"#
         )
+    }
+
+    fn write_properties(&self, message_type: &DescriptorProto) -> String {
+        message_type.field.iter().map(|f| self.write_property(f)).filter(|x| !x.is_empty()).collect::<Vec<_>>().join("\n")
+    }
+
+    fn write_property(&self, field: &FieldDescriptorProto) -> String {
+        let property = self.type_map.property(field);
+        let property_type = property.full_type_name(&self.model_namespace);
+        let property_name = property.name();
+        let default_value = property.default_value().map(|x| format!(" = {};", x)).unwrap_or_default();
+        formatdoc!(
+            r#"
+            public {property_type} {property_name} {{ get; set; }}{default_value}"#
+        )
+    }
+
+    fn write_methods(&self, message_type: &DescriptorProto) -> String {
+        let partial_namespace = &self.partial_namespace;
+        let class_name = message_type.name().to_case(Case::Pascal);
+        let header = formatdoc!(
+            r#"
+            partial void Validate();
+
+            public {partial_namespace}.{class_name} ToMessage()
+            {{
+                var msg = new {partial_namespace}.{class_name}();"#
+        );
+        let assignments = self.write_assignments(message_type).indent_lines(1);
+        let footer = formatdoc!(
+            r#"
+                return msg;
+            }}"#
+        );
+        [header, assignments, footer].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join("\n")
+    }
+
+    fn write_assignments(&self, message_type: &DescriptorProto) -> String {
+        message_type.field.iter().map(|f| self.write_assignment(f)).filter(|x| !x.is_empty()).collect::<Vec<_>>().join("\n")
+    }
+
+    fn write_assignment(&self, field: &FieldDescriptorProto) -> String {
+        let property = self.type_map.property(field);
+        let property_name = property.name();
+        let encode = match (property.base_type(), &property.options().format) {
+            (BaseType::Long, PropertyFormat::UnixTimeSeconds) => Some("EncodeSeconds".to_string()),
+            (BaseType::Long, PropertyFormat::UnixTimeMilliseconds) => Some("EncodeMilliseconds".to_string()),
+            (BaseType::String, PropertyFormat::Guid)
+            | (BaseType::String, PropertyFormat::DateTime)
+            | (BaseType::String, PropertyFormat::DateTimeOffset)
+            | (BaseType::String, PropertyFormat::DateOnly)
+            | (BaseType::String, PropertyFormat::TimeOnly)
+            | (BaseType::String, PropertyFormat::TimeSpan) => Some(format!("Encode")),
+            _ => None,
+        };
+        if !property.repeated() {
+            let value = match encode {
+                Some(f) => format!("CsaCommon.Encoder.{f}({property_name})"),
+                _ => format!("{property_name}"),
+            };
+            format!("msg.{property_name} = {value};")
+        } else {
+            let enumerable = match encode {
+                Some(f) => format!("{property_name}.Select(CsaCommon.Encoder.{f})"),
+                _ => format!("{property_name}"),
+            };
+            format!("msg.{property_name}.AddRange({enumerable});")
+        }
     }
 }

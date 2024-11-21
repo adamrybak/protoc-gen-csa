@@ -92,6 +92,10 @@ impl Property {
         self.type_record.namespace.as_deref()
     }
 
+    pub fn base_type(&self) -> &BaseType {
+        &self.type_record.base_type
+    }
+
     pub fn type_name(&self) -> String {
         if let Some(parent_name) = &self.type_record.parent_name {
             format!("{}.{}", parent_name, self.nested_type_without_parent())
@@ -101,16 +105,28 @@ impl Property {
     }
 
     pub fn nested_type_without_parent(&self) -> String {
-        let mut type_name = match &self.type_record.base_type {
+        let mut type_name = match &self.base_type() {
             BaseType::Bool => "bool".to_string(),
             BaseType::Int => "int".to_string(),
-            BaseType::Long => "long".to_string(),
+            BaseType::Long => match self.options.format {
+                PropertyFormat::UnixTimeSeconds => "System.DateTime".to_string(),
+                PropertyFormat::UnixTimeMilliseconds => "System.DateTime".to_string(),
+                _ => "long".to_string(),
+            },
             BaseType::Uint => "uint".to_string(),
             BaseType::ULong => "ulong".to_string(),
             BaseType::Float => "float".to_string(),
             BaseType::Double => "double".to_string(),
             BaseType::Bytes => "Google.Protobuf.ByteString".to_string(),
-            BaseType::String => "string".to_string(),
+            BaseType::String => match self.options.format {
+                PropertyFormat::Guid => "System.Guid".to_string(),
+                PropertyFormat::DateTime => "System.DateTime".to_string(),
+                PropertyFormat::DateTimeOffset => "System.DateTimeOffset".to_string(),
+                PropertyFormat::DateOnly => "System.DateOnly".to_string(),
+                PropertyFormat::TimeOnly => "System.TimeOnly".to_string(),
+                PropertyFormat::TimeSpan => "System.TimeSpan".to_string(),
+                _ => "string".to_string(),
+            },
             BaseType::Enum(x) => x.to_string(),
             BaseType::Message(x) => x.to_string(),
             BaseType::Map(k, v) => {
@@ -152,10 +168,16 @@ impl Property {
     }
 
     pub fn default_value(&self) -> Option<&'static str> {
-        match (self.nullable(), self.repeated(), &self.type_record.base_type, &self.options().format) {
-            (false, true, ..) | (.., BaseType::Map(..), _) => Some("[]"),
-            (false, _, BaseType::String, PropertyFormat::None) => Some("string.Empty"),
-            _ => None,
+        if self.repeated() {
+            return Some("[]");
+        } else if matches!(self.base_type(), BaseType::Map(..)) {
+            return Some("[]");
+        } else if !self.nullable() && matches!(self.base_type(), BaseType::Bytes) {
+            return Some("Google.Protobuf.ByteString.Empty");
+        } else if !self.nullable() && matches!(self.base_type(), BaseType::String) && matches!(self.options.format, PropertyFormat::None) {
+            return Some("string.Empty");
+        } else {
+            None
         }
     }
 

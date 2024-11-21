@@ -4,8 +4,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if the code is regenerated.
 // </auto-generated>
 //----------------------------------------------------------------------------------------------------
-
-using Google.Protobuf;
+#nullable enable
 
 namespace CsaCommon;
 
@@ -14,7 +13,307 @@ public interface IModelable<T>
     T ToModel(string? propertyPath = null);
 }
 
-public interface IMessageable<T> where T : IMessage<T>
+public interface IMessageable<T> where T : Google.Protobuf.IMessage<T>
 {
     T ToMessage();
+}
+
+public class InvalidArgumentsException : Exception
+{
+    private List<string> _errors { get; } = [];
+    public string[] Errors => _errors.ToArray();
+    public bool HasErrors => _errors.Count > 0;
+
+    public static string FullPropertyName(string? propertyPath, string propertyName)
+    {
+        return string.IsNullOrEmpty(propertyPath) ? propertyName : $"{propertyPath}.{propertyName}";
+    }
+
+    public InvalidArgumentsException() : base("Invalid arguments") { }
+
+    public InvalidArgumentsException AddError(string? propertyPath, string propertyName, string message)
+    {
+        _errors.Add($"{FullPropertyName(propertyPath, propertyName)}: {message}");
+        if (_errors.Count >= 15) throw this;
+        return this;
+    }
+
+    public InvalidArgumentsException Required(string? propertyPath, string propertyName)
+    {
+        return AddError(propertyPath, propertyName, "Required.");
+    }
+
+    public InvalidArgumentsException InvalidFormat(string? propertyPath, string propertyName, string expectedValue)
+    {
+        return AddError(propertyPath, propertyName, $"Invalid format, expected {expectedValue}.");
+    }
+
+    public InvalidArgumentsException InvalidGuid(string? propertyPath, string propertyName)
+    {
+        return InvalidFormat(propertyPath, propertyName, "Guid");
+    }
+
+    public InvalidArgumentsException InvalidDateTime(string? propertyPath, string propertyName)
+    {
+        return InvalidFormat(propertyPath, propertyName, "DateTime");
+    }
+
+    public InvalidArgumentsException InvalidDateOnly(string? propertyPath, string propertyName)
+    {
+        return InvalidFormat(propertyPath, propertyName, "DateOnly");
+    }
+
+    public InvalidArgumentsException InvalidTimeOnly(string? propertyPath, string propertyName)
+    {
+        return InvalidFormat(propertyPath, propertyName, "TimeOnly");
+    }
+
+    public InvalidArgumentsException InvalidTimeSpan(string? propertyPath, string propertyName)
+    {
+        return InvalidFormat(propertyPath, propertyName, "TimeSpan");
+    }
+}
+
+public class Encoder
+{
+    public static long EncodeSeconds(DateTime value)
+    {
+        return new DateTimeOffset(value).ToUnixTimeSeconds();
+    }
+
+    public static long? EncodeSeconds(DateTime? value)
+    {
+        return value.HasValue ? EncodeSeconds(value.Value) : null;
+    }
+
+    public static long EncodeMilliseconds(DateTime value)
+    {
+        return new DateTimeOffset(value).ToUnixTimeMilliseconds();
+    }
+
+    public static long? EncodeMilliseconds(DateTime? value)
+    {
+        return value.HasValue ? EncodeMilliseconds(value.Value) : null;
+    }
+
+    public static string Encode(Guid value)
+    {
+        return value.ToString();
+    }
+
+    public static string? Encode(Guid? value)
+    {
+        return value?.ToString();
+    }
+
+    public static string Encode(DateTime value)
+    {
+        return value.ToString("O");
+    }
+
+    public static string? Encode(DateTime? value)
+    {
+        return value?.ToString("O");
+    }
+
+    public static string Encode(DateTimeOffset value)
+    {
+        return value.ToString("O");
+    }
+
+    public static string? Encode(DateTimeOffset? value)
+    {
+        return value?.ToString("O");
+    }
+
+    public static string Encode(DateOnly value)
+    {
+        return value.ToString("O");
+    }
+
+    public static string? Encode(DateOnly? value)
+    {
+        return value?.ToString("O");
+    }
+
+    public static string Encode(TimeOnly value)
+    {
+        return value.ToString("O");
+    }
+
+    public static string? Encode(TimeOnly? value)
+    {
+        return value?.ToString("O");
+    }
+
+    public static string Encode(TimeSpan value)
+    {
+        return value.ToString();
+    }
+
+    public static string? Encode(TimeSpan? value)
+    {
+        return value?.ToString();
+    }
+}
+
+public class Decoder
+{
+    public static DateTime? DecodeSeconds(long? value)
+    {
+        return value.HasValue ? DecodeSeconds(value.Value) : null;
+    }
+
+    public static DateTime DecodeSeconds(long value)
+    {
+        return DateTimeOffset.FromUnixTimeSeconds(value).DateTime;
+    }
+
+    public static DateTime? DecodeMilliseconds(long? value)
+    {
+        return value.HasValue ? DecodeMilliseconds(value.Value) : null;
+    }
+
+    public static DateTime DecodeMilliseconds(long value)
+    {
+        return DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
+    }
+
+    public static Guid? DecodeNullableGuid(string? propertyPath, string propertyName, string? value, InvalidArgumentsException errors)
+    {
+        if (string.IsNullOrEmpty(value))
+            return null;
+        if (!Guid.TryParse(value, out var result))
+        {
+            errors.InvalidGuid(propertyPath, propertyName);
+            return default;
+        }
+        return result;
+    }
+
+    public static Guid DecodeGuid(string? propertyPath, string propertyName, string value, InvalidArgumentsException errors)
+    {
+        var guid = DecodeNullableGuid(propertyPath, propertyName, value, errors);
+        if (!guid.HasValue)
+        {
+            errors.Required(propertyPath, propertyName);
+            return default;
+        }
+        return guid.Value;
+    }
+
+    public static DateTime? DecodeNullableDateTime(string? propertyPath, string propertyName, string? value, InvalidArgumentsException errors)
+    {
+        if (string.IsNullOrEmpty(value))
+            return null;
+        if (!DateTime.TryParse(value, out var result))
+        {
+            errors.InvalidDateTime(propertyPath, propertyName);
+            return default;
+        }
+        return result;
+    }
+
+    public static DateTime DecodeDateTime(string? propertyPath, string propertyName, string value, InvalidArgumentsException errors)
+    {
+        var dateTime = DecodeNullableDateTime(propertyPath, propertyName, value, errors);
+        if (!dateTime.HasValue)
+        {
+            errors.Required(propertyPath, propertyName);
+            return default;
+        }
+        return dateTime.Value;
+    }
+
+    public static DateTimeOffset? DecodeNullableDateTimeOffset(string? propertyPath, string propertyName, string? value, InvalidArgumentsException errors)
+    {
+        if (string.IsNullOrEmpty(value))
+            return null;
+        if (!DateTimeOffset.TryParse(value, out var result))
+        {
+            errors.InvalidDateTime(propertyPath, propertyName);
+            return default;
+        }
+        return result;
+    }
+
+    public static DateTimeOffset DecodeDateTimeOffset(string? propertyPath, string propertyName, string value, InvalidArgumentsException errors)
+    {
+        var dateTimeOffset = DecodeNullableDateTimeOffset(propertyPath, propertyName, value, errors);
+        if (!dateTimeOffset.HasValue)
+        {
+            errors.Required(propertyPath, propertyName);
+            return default;
+        }
+        return dateTimeOffset.Value;
+    }
+
+    public static DateOnly? DecodeNullableDateOnly(string? propertyPath, string propertyName, string? value, InvalidArgumentsException errors)
+    {
+        if (string.IsNullOrEmpty(value))
+            return null;
+        if (!DateOnly.TryParse(value, out var result))
+        {
+            errors.InvalidDateOnly(propertyPath, propertyName);
+            return default;
+        }
+        return result;
+    }
+
+    public static DateOnly DecodeDateOnly(string? propertyPath, string propertyName, string value, InvalidArgumentsException errors)
+    {
+        var dateOnly = DecodeNullableDateOnly(propertyPath, propertyName, value, errors);
+        if (!dateOnly.HasValue)
+        {
+            errors.Required(propertyPath, propertyName);
+            return default;
+        }
+        return dateOnly.Value;
+    }
+
+    public static TimeOnly? DecodeNullableTimeOnly(string? propertyPath, string propertyName, string? value, InvalidArgumentsException errors)
+    {
+        if (string.IsNullOrEmpty(value))
+            return null;
+        if (!TimeOnly.TryParse(value, out var result))
+        {
+            errors.InvalidTimeOnly(propertyPath, propertyName);
+            return default;
+        }
+        return result;
+    }
+
+    public static TimeOnly DecodeTimeOnly(string? propertyPath, string propertyName, string value, InvalidArgumentsException errors)
+    {
+        var timeOnly = DecodeNullableTimeOnly(propertyPath, propertyName, value, errors);
+        if (!timeOnly.HasValue)
+        {
+            errors.Required(propertyPath, propertyName);
+            return default;
+        }
+        return timeOnly.Value;
+    }
+
+    public static TimeSpan? DecodeNullableTimeSpan(string? propertyPath, string propertyName, string? value, InvalidArgumentsException errors)
+    {
+        if (string.IsNullOrEmpty(value))
+            return null;
+        if (!TimeSpan.TryParse(value, out var result))
+        {
+            errors.InvalidTimeSpan(propertyPath, propertyName);
+            return default;
+        }
+        return result;
+    }
+
+    public static TimeSpan DecodeTimeSpan(string? propertyPath, string propertyName, string value, InvalidArgumentsException errors)
+    {
+        var timeSpan = DecodeNullableTimeSpan(propertyPath, propertyName, value, errors);
+        if (!timeSpan.HasValue)
+        {
+            errors.Required(propertyPath, propertyName);
+            return default;
+        }
+        return timeSpan.Value;
+    }
 }

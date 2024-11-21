@@ -12,7 +12,7 @@
         "--csa_out=../../test/output/CodeGen/",
         "--proto_path=${env:USERPROFILE}\\.nuget\\packages\\google.protobuf.tools\\3.28.3\\tools",
         "--proto_path=../../test/input/",
-        "primatives.proto"
+        "test.proto"
       ],
       "preLaunchTask": "build debug"
     }

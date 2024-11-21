@@ -1,0 +1,100 @@
+syntax = "proto3";
+import "google/protobuf/wrappers.proto";
+import "api/options.proto";
+
+package test;
+option csharp_namespace = "TestApi";
+
+message EmptyTest {}
+
+message PrimativeTest {
+  bool rhodaMendoza = 1;
+  int32 johnWise = 2;
+  int64 mamieYates = 3;
+  uint32 adaWeber = 4;
+  uint64 jaredMcKinney = 5;
+  sint32 jeremyPeterson = 6;
+  sint64 ethanRamsey = 7;
+  fixed32 matthewWhite = 8;
+  fixed64 leeGreene = 9;
+  sfixed32 dylanHardy = 10;
+  sfixed64 stevenRamirez = 11;
+  float hettiePeterson = 12;
+  double ronnieReed = 13;
+  bytes henryGoodwin = 14;
+  string minaHanson = 15;
+  int64 chadSpencer = 16 [(opt.format) = UNIX_TIME_SECONDS];
+  int64 lauraKnight = 17 [(opt.format) = UNIX_TIME_MILLISECONDS];
+  string donOwens = 18 [(opt.format) = GUID];
+  string aidenRodgers = 19 [(opt.format) = DATE_TIME];
+  string coreyFox = 20 [(opt.format) = DATE_TIME_OFFSET];
+  string ricardoHarmon = 21 [(opt.format) = DATE_ONLY];
+  string chadBaldwin = 22 [(opt.format) = TIME_ONLY];
+  string danielRodgers = 23 [(opt.format) = TIME_SPAN];
+}
+
+message RepeatedTest {
+  repeated bool dorothyDaniels = 1;
+  repeated int32 allenColeman = 2;
+  repeated int64 johnnyKlein = 3;
+  repeated uint32 beatriceCurry = 4;
+  repeated uint64 christopherEdwards = 5;
+  repeated sint32 frankStevenson = 6;
+  repeated sint64 carrieWalton = 7;
+  repeated fixed32 garyPatrick = 8;
+  repeated fixed64 jesseButler = 9;
+  repeated sfixed32 albertaDaniel = 10;
+  repeated sfixed64 larryMiller = 11;
+  repeated float curtisHarrington = 12;
+  repeated double rosieLamb = 13;
+  repeated bytes euniceRobbins = 14;
+  repeated string bryanStrickland = 15;
+  repeated int64 marthaWalker = 16 [(opt.format) = UNIX_TIME_SECONDS];
+  repeated int64 myrtleBoone = 17 [(opt.format) = UNIX_TIME_MILLISECONDS];
+  repeated string charlesGibson = 18 [(opt.format) = GUID];
+  repeated string estelleBailey = 19 [(opt.format) = DATE_TIME];
+  repeated string garrettCain = 20 [(opt.format) = DATE_TIME_OFFSET];
+  repeated string luellaGuerrero = 21 [(opt.format) = DATE_ONLY];
+  repeated string stephenWilkerson = 22 [(opt.format) = TIME_ONLY];
+  repeated string loganRamsey = 23 [(opt.format) = TIME_SPAN];
+}
+
+message NullableTest {
+  google.protobuf.BoolValue renaNguyen = 1;
+  google.protobuf.Int32Value pollyGuzman = 2;
+  google.protobuf.Int64Value garyStanley = 3;
+  google.protobuf.UInt32Value herbertBurton = 4;
+  google.protobuf.UInt64Value winnieRowe = 5;
+  google.protobuf.FloatValue jackRivera = 6;
+  google.protobuf.DoubleValue oliveMorales = 7;
+  google.protobuf.BytesValue luraHawkins = 8;
+  google.protobuf.StringValue patrickOrtega = 9;
+  google.protobuf.Int64Value williamRobbins = 10 [(opt.format) = UNIX_TIME_SECONDS];
+  google.protobuf.Int64Value sadieClayton = 11 [(opt.format) = UNIX_TIME_MILLISECONDS];
+  google.protobuf.StringValue evelynSilva = 12 [(opt.format) = GUID];
+  google.protobuf.StringValue seanRios = 13 [(opt.format) = DATE_TIME];
+  google.protobuf.StringValue hattieHarrington = 14 [(opt.format) = DATE_TIME_OFFSET];
+  google.protobuf.StringValue gregoryManning = 15 [(opt.format) = DATE_ONLY];
+  google.protobuf.StringValue inaMcDonald = 16 [(opt.format) = TIME_ONLY];
+  google.protobuf.StringValue jefferyJimenez = 17 [(opt.format) = TIME_SPAN];
+}
+
+message RepeatedNullableTest {
+  repeated google.protobuf.BoolValue marcusArmstrong = 1;
+  repeated google.protobuf.Int32Value barryWise = 2;
+  repeated google.protobuf.Int64Value olgaMathis = 3;
+  repeated google.protobuf.UInt32Value lewisMunoz = 4;
+  repeated google.protobuf.UInt64Value francisCraig = 5;
+  repeated google.protobuf.FloatValue eugeniaStokes = 6;
+  repeated google.protobuf.DoubleValue ruthMason = 7;
+  repeated google.protobuf.BytesValue samGlover = 8;
+  repeated google.protobuf.StringValue glenCohen = 9;
+  repeated google.protobuf.Int64Value leoRay = 10 [(opt.format) = UNIX_TIME_SECONDS];
+  repeated google.protobuf.Int64Value phillipGardner = 11 [(opt.format) = UNIX_TIME_MILLISECONDS];
+  repeated google.protobuf.StringValue isabellaHerrera = 12 [(opt.format) = GUID];
+  repeated google.protobuf.StringValue alexCannon = 13 [(opt.format) = DATE_TIME];
+  repeated google.protobuf.StringValue elizaPage = 14 [(opt.format) = DATE_TIME_OFFSET];
+  repeated google.protobuf.StringValue deliaHolland = 15 [(opt.format) = DATE_ONLY];
+  repeated google.protobuf.StringValue albertColeman = 16 [(opt.format) = TIME_ONLY];
+  repeated google.protobuf.StringValue hattieGuzman = 17 [(opt.format) = TIME_SPAN];
+}
