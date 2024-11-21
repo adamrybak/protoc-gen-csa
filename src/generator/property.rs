@@ -1,5 +1,5 @@
-use super::{BaseType, TypeRecord};
-use crate::google::protobuf::field_options::{self, FormatType};
+use super::{BaseType, TypeRecordRef};
+use crate::google::protobuf::field_options::{self};
 
 #[derive(Clone)]
 pub enum PropertyFormat {
@@ -71,15 +71,15 @@ impl Default for PropertyOptions {
     }
 }
 
-pub struct Property<'a> {
-    type_record: &'a TypeRecord,
+pub struct Property {
+    type_record: TypeRecordRef,
     repeated: bool,
     name: String,
     options: PropertyOptions,
 }
 
-impl<'a> Property<'a> {
-    pub fn new(type_record: &'a TypeRecord, repeated: bool, name: &str, options: &PropertyOptions) -> Self {
+impl Property {
+    pub fn new(type_record: TypeRecordRef, repeated: bool, name: &str, options: &PropertyOptions) -> Self {
         Property {
             type_record,
             repeated,
@@ -114,8 +114,8 @@ impl<'a> Property<'a> {
             BaseType::Enum(x) => x.to_string(),
             BaseType::Message(x) => x.to_string(),
             BaseType::Map(k, v) => {
-                let key_property = Property::new(k, false, "key", &self.options);
-                let value_property = Property::new(v, false, "value", &self.options);
+                let key_property = Property::new(k.clone(), false, "key", &self.options);
+                let value_property = Property::new(v.clone(), false, "value", &self.options);
                 format!("System.Collections.Generic.Dictionary<{}, {}>", key_property.type_name(), value_property.type_name())
             }
         };

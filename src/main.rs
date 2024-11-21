@@ -1,9 +1,10 @@
-use generator::{Generator, GeneratorModel, GeneratorPartial, TypeMap};
-use google::protobuf::compiler::{CodeGeneratorRequest, CodeGeneratorResponse};
+use generator::Generator;
+use google::protobuf::compiler::CodeGeneratorRequest;
 use prost::Message;
 use std::io::{self, Read, Write};
 
 pub mod generator;
+pub mod utility;
 pub mod google {
     pub mod protobuf {
         pub mod compiler {
@@ -17,11 +18,7 @@ fn main() -> io::Result<()> {
     let mut buf = Vec::new();
     io::stdin().read_to_end(&mut buf)?;
     let request = CodeGeneratorRequest::decode(buf.as_slice())?;
-    let mut response = CodeGeneratorResponse::default();
-
-    let type_map = TypeMap::new(&request);
-    Generator::generate(&request, &mut response, &type_map);
-
+    let response = Generator::generate(request);
     let mut buf = Vec::new();
     response.encode(&mut buf)?;
     io::stdout().write_all(&buf)?;

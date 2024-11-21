@@ -1,10 +1,13 @@
-use super::{Property, PropertyFormat, PropertyOptions};
-use crate::google::protobuf::{compiler::CodeGeneratorRequest, field_descriptor_proto, DescriptorProto, EnumDescriptorProto, FieldDescriptorProto, FileDescriptorProto};
+use super::{
+    property::{Property, PropertyFormat, PropertyOptions},
+    GeneratorPartial,
+};
+use crate::google::protobuf::{compiler::CodeGeneratorRequest, field_descriptor_proto, DescriptorProto, EnumDescriptorProto, FieldDescriptorProto};
 use convert_case::{Case, Casing};
-use std::{borrow::Borrow, collections::HashSet, hash::Hash};
+use std::{borrow::Borrow, collections::HashSet, hash::Hash, ops::Deref, rc::Rc};
 
 pub struct TypeMap {
-    records: HashSet<TypeRecord>,
+    records: HashSet<TypeRecordRef>,
 }
 
 impl TypeMap {
@@ -37,7 +40,7 @@ impl TypeMap {
 
         for file in &request.proto_file {
             let package = file.package();
-            let namespace = TypeMap::namespace(file);
+            let namespace = GeneratorPartial::namespace(file);
             for enum_type in &file.enum_type {
                 this.parse_enum(package, Some(&namespace), None, enum_type);
             }
@@ -48,22 +51,13 @@ impl TypeMap {
 
         for file in &request.proto_file {
             let package = file.package();
-            let namespace = TypeMap::namespace(file);
+            let namespace = GeneratorPartial::namespace(file);
             for message_type in &file.message_type {
                 this.parse_map(package, Some(&namespace), None, message_type);
             }
         }
 
         this
-    }
-
-    pub fn namespace(file: &FileDescriptorProto) -> String {
-        let csharp_namespace = file.options.as_ref().and_then(|o| Some(o.csharp_namespace().to_string()));
-        if let Some(csharp_namespace) = csharp_namespace {
-            csharp_namespace
-        } else {
-            file.package().split('.').map(|p| p.to_case(Case::Pascal)).collect::<Vec<_>>().join(".")
-        }
     }
 
     pub fn proto_name(field: &FieldDescriptorProto) -> &str {
@@ -75,18 +69,12 @@ impl TypeMap {
 
     pub fn insert(&mut self, proto_name: &str, namespace: Option<&str>, parent_name: Option<&str>, base_type: BaseType, nullable: bool) {
         if !self.records.contains(proto_name) {
-            self.records.insert(TypeRecord {
-                proto_name: proto_name.to_string(),
-                namespace: namespace.map(|s| s.to_string()),
-                parent_name: parent_name.map(|s| s.to_string()),
-                base_type,
-                nullable,
-            });
+            self.records.insert(TypeRecordRef::new(proto_name, namespace, parent_name, base_type, nullable));
         }
     }
 
-    pub fn get(&self, base_type: &str) -> &TypeRecord {
-        self.records.get(base_type).expect(&format!("unknown type: {}", base_type))
+    pub fn get(&self, proto_name: &str) -> TypeRecordRef {
+        self.records.get(proto_name).and_then(|r| Some(r.clone())).expect(&format!("unknown type: {}", proto_name))
     }
 
     fn parse_enum(&mut self, package: &str, namespace: Option<&str>, parent_name: Option<&str>, enum_type: &EnumDescriptorProto) {
@@ -120,14 +108,14 @@ impl TypeMap {
             let key_type_record = message_type
                 .field
                 .get(0)
-                .and_then(|f| Some(self.get(Self::proto_name(f)).to_owned()))
+                .and_then(|f| Some(self.get(Self::proto_name(f))))
                 .expect(&format!("unknown key field: {}", message_type.name()));
             let value_type_record = message_type
                 .field
                 .get(1)
-                .and_then(|f| Some(self.get(Self::proto_name(f)).to_owned()))
+                .and_then(|f| Some(self.get(Self::proto_name(f))))
                 .expect(&format!("unknown value field: {}", message_type.name()));
-            self.insert(&proto_name, namespace, parent_name, BaseType::Map(Box::new(key_type_record), Box::new(value_type_record)), false);
+            self.insert(&proto_name, namespace, parent_name, BaseType::Map(key_type_record, value_type_record), false);
         }
         let package = format!("{}.{}", package, message_type.name());
         let parent_name = parent_name.and_then(|p| Some(format!("{}.{}", p, class_name))).unwrap_or(class_name);
@@ -136,7 +124,7 @@ impl TypeMap {
         }
     }
 
-    pub fn property(&mut self, field: &FieldDescriptorProto) -> Property {
+    pub fn property(&self, field: &FieldDescriptorProto) -> Property {
         let type_record = self.get(Self::proto_name(field));
         let repeated = field.label() == field_descriptor_proto::Label::Repeated && !matches!(type_record.base_type, BaseType::Map(..));
         let name = field.name().to_case(Case::Pascal);
@@ -162,7 +150,6 @@ impl TypeMap {
     }
 }
 
-#[derive(Clone)]
 pub struct TypeRecord {
     pub proto_name: String,
     pub namespace: Option<String>,
@@ -171,21 +158,53 @@ pub struct TypeRecord {
     pub nullable: bool,
 }
 
-impl Eq for TypeRecord {}
+pub struct TypeRecordRef {
+    inner: Rc<TypeRecord>,
+}
 
-impl PartialEq for TypeRecord {
+impl TypeRecordRef {
+    pub fn new(proto_name: &str, namespace: Option<&str>, parent_name: Option<&str>, base_type: BaseType, nullable: bool) -> Self {
+        TypeRecordRef {
+            inner: Rc::new(TypeRecord {
+                proto_name: proto_name.to_string(),
+                namespace: namespace.map(|s| s.to_string()),
+                parent_name: parent_name.map(|s| s.to_string()),
+                base_type,
+                nullable,
+            }),
+        }
+    }
+}
+
+impl Deref for TypeRecordRef {
+    type Target = TypeRecord;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl Clone for TypeRecordRef {
+    fn clone(&self) -> Self {
+        TypeRecordRef { inner: Rc::clone(&self.inner) }
+    }
+}
+
+impl Eq for TypeRecordRef {}
+
+impl PartialEq for TypeRecordRef {
     fn eq(&self, other: &Self) -> bool {
         self.proto_name == other.proto_name
     }
 }
 
-impl Hash for TypeRecord {
+impl Hash for TypeRecordRef {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.proto_name.hash(state);
     }
 }
 
-impl Borrow<str> for TypeRecord {
+impl Borrow<str> for TypeRecordRef {
     fn borrow(&self) -> &str {
         &self.proto_name
     }
@@ -204,5 +223,5 @@ pub enum BaseType {
     String,
     Enum(String),
     Message(String),
-    Map(Box<TypeRecord>, Box<TypeRecord>),
+    Map(TypeRecordRef, TypeRecordRef),
 }

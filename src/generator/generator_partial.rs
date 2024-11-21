@@ -1,7 +1,10 @@
-use super::TypeMap;
-use crate::google::protobuf::{
-    compiler::{code_generator_response, CodeGeneratorResponse},
-    FileDescriptorProto,
+use super::{generator_model::GeneratorModel, TypeMap};
+use crate::{
+    google::protobuf::{
+        compiler::{code_generator_response, CodeGeneratorResponse},
+        DescriptorProto, FieldDescriptorProto, FileDescriptorProto,
+    },
+    utility::IndentSubsequentLines,
 };
 use convert_case::{Case, Casing};
 use indoc::formatdoc;
@@ -12,13 +15,23 @@ pub struct GeneratorPartial<'a> {
     type_map: &'a TypeMap,
     file: &'a FileDescriptorProto,
     file_name: String,
+    namespace: String,
+    model_namespace: String,
 }
 
 impl<'a> GeneratorPartial<'a> {
-    pub fn generate(response: &mut CodeGeneratorResponse, type_map: &TypeMap, file: &FileDescriptorProto) {
+    pub fn generate(response: &'a mut CodeGeneratorResponse, type_map: &'a TypeMap, file: &'a FileDescriptorProto) {
         let file_name = Self::file_name(file);
-        let this = GeneratorPartial { response, type_map, file, file_name };
-
+        let namespace = Self::namespace(file);
+        let model_namespace = GeneratorModel::namespace(file);
+        let this = GeneratorPartial {
+            response,
+            type_map,
+            file,
+            file_name,
+            namespace,
+            model_namespace,
+        };
         let content = this.write_content();
         this.response.file.push(code_generator_response::File {
             name: Some(this.file_name),
@@ -29,17 +42,32 @@ impl<'a> GeneratorPartial<'a> {
     }
 
     pub fn file_name(file: &FileDescriptorProto) -> String {
-        Path::new(&file.name().to_case(Case::Pascal)).with_extension("Partial.cs").to_string_lossy().to_string()
+        Path::new(&file.name().to_case(Case::Pascal)).with_extension("Partials.cs").to_string_lossy().to_string()
+    }
+
+    pub fn namespace(file: &FileDescriptorProto) -> String {
+        let csharp_namespace = file.options.as_ref().and_then(|o| Some(o.csharp_namespace().to_string()));
+        if let Some(csharp_namespace) = csharp_namespace {
+            csharp_namespace
+        } else {
+            file.package().split('.').map(|p| p.to_case(Case::Pascal)).collect::<Vec<_>>().join(".")
+        }
     }
 
     fn write_content(&self) -> String {
-        let header = self.write_header();
-        [header].join("\n\n")
+        [
+            self.write_header(), //
+            self.write_classes(),
+        ]
+        .into_iter()
+        .filter(|x| !x.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n")
     }
 
     fn write_header(&self) -> String {
         let input_file_name = &self.file.name();
-        let namespace = TypeMap::namespace(&self.file);
+        let namespace = &self.namespace;
         formatdoc!(
             r#"
             //----------------------------------------------------------------------------------------------------
@@ -51,6 +79,43 @@ impl<'a> GeneratorPartial<'a> {
             //----------------------------------------------------------------------------------------------------
             
             namespace {namespace};"#
+        )
+    }
+
+    fn write_classes(&self) -> String {
+        self.file.message_type.iter().map(|m| self.write_class(m)).filter(|x| !x.is_empty()).collect::<Vec<_>>().join("\n\n")
+    }
+
+    fn write_class(&self, message_type: &DescriptorProto) -> String {
+        let model_namespace = &self.model_namespace;
+        let class_name = message_type.name().to_case(Case::Pascal);
+        // let properties = message_type
+        //     .field
+        //     .iter()
+        //     .map(|f| self.write_property(f))
+        //     .filter(|x| !x.is_empty())
+        //     .collect::<Vec<_>>()
+        //     .join("\n")
+        //     .indent_subsequent_lines(1);
+        formatdoc!(
+            r#"
+            public partial class {class_name} : CsaCommon.IModelable<{model_namespace}.{class_name}>
+            {{
+                public {model_namespace}.{class_name} ToModel(string propertyPath = null)
+                {{
+                    throw new NotImplementedException();
+                }}
+            }}"#,
+        )
+    }
+
+    fn write_property(&self, field: &FieldDescriptorProto) -> String {
+        let property = self.type_map.property(field);
+        let property_name = property.name();
+        let property_type_name = property.full_type_name(&self.namespace);
+        formatdoc!(
+            r#"
+            public {property_type_name} {property_name} {{ get; set; }}"#,
         )
     }
 }
