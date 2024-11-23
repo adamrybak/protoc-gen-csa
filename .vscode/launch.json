@@ -15,6 +15,15 @@
         "test.proto"
       ],
       "preLaunchTask": "build debug"
+    },
+    {
+      "name": "Launch dotnet",
+      "type": "coreclr",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/test/output/bin/Debug/net8.0",
+      "program": "TestApp.exe",
+      "preLaunchTask": "build dotnet",
+      "console": "integratedTerminal"
     }
   ]
 }

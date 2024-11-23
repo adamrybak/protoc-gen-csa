@@ -1,9 +1,47 @@
 syntax = "proto3";
-import "google/protobuf/wrappers.proto";
 import "api/options.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/wrappers.proto";
 
 package test;
 option csharp_namespace = "TestApi";
+
+service TestService {
+  rpc Empty(EmptyTest) returns (EmptyTest) {
+    option (google.api.http) = {
+      get: "/empty"
+    };
+  }
+  rpc Primative(PrimativeTest) returns (EmptyTest) {
+    option (google.api.http) = {
+      post: "/primative"
+      body: "*"
+    };
+  }
+  rpc Repeated(RepeatedTest) returns (EmptyTest) {
+    option (google.api.http) = {
+      put: "/repeated"
+      body: "*"
+    };
+  }
+  rpc Nullable(NullableTest) returns (EmptyTest) {
+    option (google.api.http) = {
+      patch: "/nullable"
+      body: "*"
+    };
+  }
+  rpc RepeatedNullable(RepeatedNullableTest) returns (EmptyTest) {
+    option (google.api.http) = {
+      delete: "/repeated-nullable"
+      body: "*"
+    };
+  }
+}
+
+message BadRequestDetail {
+  string property = 1;
+  string message = 2;
+}
 
 message EmptyTest {}
 

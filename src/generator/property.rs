@@ -184,4 +184,31 @@ impl Property {
     pub fn options(&self) -> &PropertyOptions {
         &self.options
     }
+
+    pub fn codec(&self) -> Option<String> {
+        let nullable = self.nullable().then(|| "Nullable").unwrap_or_default();
+        match (self.base_type(), &self.options().format) {
+            (BaseType::Long, PropertyFormat::UnixTimeSeconds) => Some(format!(r#"{nullable}UnixTimeSecondsCodec"#)),
+            (BaseType::Long, PropertyFormat::UnixTimeMilliseconds) => Some(format!(r#"{nullable}UnixTimeMillisecondsCodec"#)),
+            (BaseType::String, PropertyFormat::Guid) => Some(format!(r#"{nullable}GuidCodec"#)),
+            (BaseType::String, PropertyFormat::DateTime) => Some(format!(r#"{nullable}DateTimeCodec"#)),
+            (BaseType::String, PropertyFormat::DateTimeOffset) => Some(format!(r#"{nullable}DateTimeOffsetCodec"#)),
+            (BaseType::String, PropertyFormat::DateOnly) => Some(format!(r#"{nullable}DateOnlyCodec"#)),
+            (BaseType::String, PropertyFormat::TimeOnly) => Some(format!(r#"{nullable}TimeOnlyCodec"#)),
+            (BaseType::String, PropertyFormat::TimeSpan) => Some(format!(r#"{nullable}TimeSpanCodec"#)),
+            _ => None,
+        }
+    }
+
+    pub fn is_checked(&self) -> bool {
+        match (self.base_type(), &self.options().format) {
+            (BaseType::String, PropertyFormat::Guid)
+            | (BaseType::String, PropertyFormat::DateTime)
+            | (BaseType::String, PropertyFormat::DateTimeOffset)
+            | (BaseType::String, PropertyFormat::DateOnly)
+            | (BaseType::String, PropertyFormat::TimeOnly)
+            | (BaseType::String, PropertyFormat::TimeSpan) => true,
+            _ => false,
+        }
+    }
 }

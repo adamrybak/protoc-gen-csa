@@ -1,11 +1,10 @@
-use super::{generator_model::GeneratorModel, property::PropertyFormat, TypeMap};
+use super::{generator_model::GeneratorModel, TypeMap};
 use crate::{
-    generator::BaseType,
     google::protobuf::{
         compiler::{code_generator_response, CodeGeneratorResponse},
         DescriptorProto, FieldDescriptorProto, FileDescriptorProto,
     },
-    utility::IndentLines,
+    utility::{IndentLines, JoinNonEmpty},
 };
 use convert_case::{Case, Casing};
 use indoc::formatdoc;
@@ -56,14 +55,7 @@ impl<'a> GeneratorPartial<'a> {
     }
 
     fn write_content(&self) -> String {
-        [
-            self.write_header(), //
-            self.write_classes(),
-        ]
-        .into_iter()
-        .filter(|x| !x.is_empty())
-        .collect::<Vec<_>>()
-        .join("\n\n")
+        [self.write_header(), self.write_classes()].into_iter().join_non_empty("\n\n")
     }
 
     fn write_header(&self) -> String {
@@ -85,93 +77,108 @@ impl<'a> GeneratorPartial<'a> {
     }
 
     fn write_classes(&self) -> String {
-        self.file.message_type.iter().map(|m| self.write_class(m)).filter(|x| !x.is_empty()).collect::<Vec<_>>().join("\n\n")
+        self.file.message_type.iter().map(|m| self.write_class(m)).join_non_empty("\n\n")
     }
 
     fn write_class(&self, message_type: &DescriptorProto) -> String {
         let model_namespace = &self.model_namespace;
         let class_name = message_type.name().to_case(Case::Pascal);
         let to_model = self.write_to_model(message_type);
-        let regions = [to_model].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join("\n\n").indent_subsequent_lines(1);
-        formatdoc!(
-            r#"
-            public partial class {class_name} : CsaCommon.IModelable<{model_namespace}.{class_name}>
-            {{
-                {regions}
-            }}"#,
-        )
+        [
+            formatdoc!(
+                r#"
+                public partial class {class_name} : CsaCommon.IModelable<{model_namespace}.{class_name}>
+                {{"#
+            ),
+            [to_model].into_iter().join_non_empty("\n\n").indent_lines(1),
+            formatdoc!(
+                r#"
+                }}"#,
+            ),
+        ]
+        .into_iter()
+        .join_non_empty("\n")
     }
 
     fn write_to_model(&self, message_type: &DescriptorProto) -> String {
+        let partial_namespace = &self.partial_namespace;
         let model_namespace = &self.model_namespace;
         let class_name = message_type.name().to_case(Case::Pascal);
-        let header = formatdoc!(
-            r#"
-            public {model_namespace}.{class_name} ToModel(string? propertyPath = null)
-            {{
-                var model = new {model_namespace}.{class_name}();"#
-        );
-        let assignments = self.write_assignments(message_type).indent_lines(1);
-        let footer = formatdoc!(
-            r#"
-                return model;
-            }}"#
-        );
-        [header, assignments, footer].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join("\n")
+        let assignments = self.write_assignments(message_type);
+        [
+            formatdoc!(
+                r#"
+                public {model_namespace}.{class_name} ToModel(string? propertyPath = null)
+                {{
+                    var invalid = new CsaCommon.InvalidArgumentsException();
+                    var model = new {model_namespace}.{class_name}();"#
+            ),
+            assignments.indent_lines(1),
+            formatdoc!(
+                r#"
+                    try
+                    {{
+                        ((CsaCommon.IMessageable<{partial_namespace}.{class_name}>)model).Validate(propertyPath);
+                    }}
+                    catch (CsaCommon.InvalidArgumentsException ex)
+                    {{
+                        invalid.AddErrors(ex);
+                    }}
+                    if (invalid.HasErrors) throw invalid;
+                    return model;
+                }}"#
+            ),
+        ]
+        .into_iter()
+        .join_non_empty("\n")
     }
 
     fn write_assignments(&self, message_type: &DescriptorProto) -> String {
-        let assignments = message_type.field.iter().map(|f| self.write_assignment(f)).filter(|(a, _)| !a.is_empty()).collect::<Vec<_>>();
-        let has_validations = assignments.iter().any(|(_, v)| *v);
-        let assignments = assignments.into_iter().map(|(a, _)| a).collect::<Vec<_>>().join("\n");
-
-        if has_validations {
-            formatdoc!(
-                r#"
-                var invalid = new CsaCommon.InvalidArgumentsException();
-                {assignments}
-                if (invalid.HasErrors) throw invalid;"#
-            )
-        } else {
-            assignments
-        }
+        message_type.field.iter().map(|f| self.write_assignment(f)).into_iter().join_non_empty("\n")
     }
 
-    fn write_assignment(&self, field: &FieldDescriptorProto) -> (String, bool) {
+    fn write_assignment(&self, field: &FieldDescriptorProto) -> String {
         let property = self.type_map.property(field);
         let property_name = property.name();
-        let nullable = property.nullable().then(|| "Nullable").unwrap_or_default();
-        let decode_unchecked = match (property.base_type(), &property.options().format) {
-            (BaseType::Long, PropertyFormat::UnixTimeSeconds) => Some("DecodeSeconds"),
-            (BaseType::Long, PropertyFormat::UnixTimeMilliseconds) => Some("DecodeMilliseconds"),
-            _ => None,
-        };
-        let decode_checked = match (property.base_type(), &property.options().format) {
-            (BaseType::String, PropertyFormat::Guid) => Some(format!("Decode{nullable}Guid")),
-            (BaseType::String, PropertyFormat::DateTime) => Some(format!("Decode{nullable}DateTime")),
-            (BaseType::String, PropertyFormat::DateTimeOffset) => Some(format!("Decode{nullable}DateTimeOffset")),
-            (BaseType::String, PropertyFormat::DateOnly) => Some(format!("Decode{nullable}DateOnly")),
-            (BaseType::String, PropertyFormat::TimeOnly) => Some(format!("Decode{nullable}TimeOnly")),
-            (BaseType::String, PropertyFormat::TimeSpan) => Some(format!("Decode{nullable}TimeSpan")),
-            _ => None,
-        };
-        if !property.repeated() {
-            let (value, has_validation) = match (decode_unchecked, decode_checked) {
-                (Some(f), _) => (format!("CsaCommon.Decoder.{f}({property_name})"), false),
-                (_, Some(f)) => (format!("CsaCommon.Decoder.{f}(propertyPath, nameof({property_name}), {property_name}, invalid)"), true),
-                _ => (format!("{property_name}"), false),
-            };
-            (format!("model.{property_name} = {value};"), has_validation)
-        } else {
-            let (enumerable, has_validation) = match (decode_unchecked, decode_checked) {
-                (Some(f), _) => (format!(r#"{property_name}.Select(CsaCommon.Decoder.{f})"#), false),
-                (_, Some(f)) => (
-                    format!(r#"{property_name}.Select((x, i) => CsaCommon.Decoder.{f}(propertyPath, $"{{nameof({property_name})}}[{{i}}]", x, invalid))"#),
-                    true,
-                ),
-                _ => (format!("{property_name}"), false),
-            };
-            (format!("model.{property_name}.AddRange({enumerable});"), has_validation)
+        match (property.repeated(), property.codec(), property.is_checked()) {
+            (false, None, _) => formatdoc!(
+                r#"
+                model.{property_name} = {property_name};"#
+            ),
+            (false, Some(codec), false) => formatdoc!(
+                r#"
+                model.{property_name} = CsaCommon.{codec}.Decode({property_name});"#
+            ),
+            (false, Some(codec), true) => formatdoc!(
+                r#"
+                try
+                {{
+                    model.{property_name} = CsaCommon.{codec}.Decode(propertyPath, nameof({property_name}), {property_name});
+                }}
+                catch (CsaCommon.InvalidArgumentsException ex)
+                {{
+                    invalid.AddErrors(ex);
+                }}"#
+            ),
+            (true, None, _) => formatdoc!(
+                r#"
+                model.{property_name}.AddRange({property_name});"#
+            ),
+            (true, Some(codec), false) => formatdoc!(
+                r#"
+                model.{property_name}.AddRange(CsaCommon.EnumerableCodec.Decode({property_name}, CsaCommon.{codec}.Decode));"#
+            ),
+            (true, Some(codec), true) => formatdoc!(
+                r#"
+                try
+                {{
+                    model.{property_name}.AddRange(CsaCommon.EnumerableCodec.Decode(propertyPath, nameof({property_name}), {property_name}, CsaCommon.{codec}.Decode));
+                }}
+                catch (CsaCommon.InvalidArgumentsException ex)
+                {{
+                    invalid.AddErrors(ex);
+                }}"#
+            ),
         }
     }
 }
