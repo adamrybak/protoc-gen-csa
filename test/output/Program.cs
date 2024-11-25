@@ -1,7 +1,4 @@
-﻿using CsaCommon;
-using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+﻿using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using TestApi;
@@ -30,37 +27,8 @@ public class TestService : TestApi.TestService.TestServiceBase
 
     public override Task<EmptyTest> Primative(PrimativeTest request, ServerCallContext context)
     {
-        var status = new Google.Rpc.Status
-        {
-            Code = (int)StatusCode.NotFound,
-            Message = "Simple error message",
-            Details = { Any.Pack(new BadRequestDetail { Property = "EthanRamsey", Message = "LessThanOrEqual" }) }
-        };
-
-        throw status.ToRpcException();
-
-        // var trailers = new Metadata();
-        // trailers.Add("grpc-status-details-bin", status.ToByteArray());
-        // context.WriteResponseHeadersAsync(headers);
-        // context.ResponseTrailers.Add("grpc-status-details-bin", status.ToByteArray());
-        // throw new RpcException(new Status(StatusCode.NotFound, ""), trailers);
-
-        // try
-        // {
-        //     request.ToModel();
-        //     return Task.FromResult(new EmptyTest());
-        // }
-        // catch (InvalidArgumentsException ex)
-        // {
-        //     var status = new Google.Rpc.Status
-        //     {
-        //         Code = (int)StatusCode.NotFound,
-        //         Message = "Simple error message",
-        //         Details = { Any.Pack(new Google.Rpc.ErrorInfo { Domain = "example", Reason = "some reason" }) }
-        //     };
-
-        //     throw status.ToRpcException();
-        // }
+        var model = request.ToModel();
+        return Task.FromResult(new EmptyTest());
     }
 
     public override Task<EmptyTest> Nullable(NullableTest request, ServerCallContext context)
