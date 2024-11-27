@@ -5,7 +5,7 @@
       "label": "clean",
       "group": "build",
       "type": "shell",
-      "command": "@echo off && for /r %i in (Cargo.toml) do ( if exist \"%~dpitarget\" rmdir /s /q \"%~dpitarget\" >nul )"
+      "command": "@echo off && for /r %i in (Cargo.toml) do ( if exist \"%~dpitarget\" rmdir /s /q \"%~dpitarget\" >nul ) && for /r %i in (*.csproj) do ( if exist \"%~dpibin\" rmdir /s /q \"%~dpibin\" >nul && if exist \"%~dpiobj\" rmdir /s /q \"%~dpiobj\" >nul )"
     },
     {
       "label": "build debug",

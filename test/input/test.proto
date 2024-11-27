@@ -136,3 +136,22 @@ message RepeatedNullableTest {
   repeated google.protobuf.StringValue albertColeman = 16 [(opt.format) = TIME_ONLY];
   repeated google.protobuf.StringValue hattieGuzman = 17 [(opt.format) = TIME_SPAN];
 }
+
+message User {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  string password = 4;
+  repeated Role roles = 5 [(opt.required) = true];
+  map<string, Role> managedRoles = 6;
+  string created = 7 [(opt.format) = DATE_TIME];
+  string updated = 8 [(opt.format) = DATE_TIME];
+}
+
+message Role {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string created = 4 [(opt.format) = DATE_TIME];
+  string updated = 5 [(opt.format) = DATE_TIME];
+}

@@ -10,7 +10,7 @@ impl IndentLines for String {
             if line.trim().is_empty() {
                 result.push_str(line);
             } else {
-                result.push_str(&format!("{}{}", "    ".repeat(indent), line));
+                result.push_str(&format!("{}{}", " ".repeat(indent * 4), line));
             }
         }
         result
@@ -25,7 +25,7 @@ impl IndentLines for String {
                 if line.trim().is_empty() {
                     result.push_str(line);
                 } else {
-                    result.push_str(&format!("{}{}", "    ".repeat(indent), line));
+                    result.push_str(&format!("{}{}", " ".repeat(indent * 4), line));
                 }
             }
         }

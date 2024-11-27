@@ -96,15 +96,17 @@ impl Property {
         &self.type_record.base_type
     }
 
-    pub fn type_name(&self) -> String {
-        if let Some(parent_name) = &self.type_record.parent_name {
-            format!("{}.{}", parent_name, self.nested_type_without_parent())
+    pub fn type_name(&self, current_namespace: &str) -> String {
+        if self.repeated() || matches!(self.base_type(), BaseType::Map(..)) {
+            self.nested_type_without_parent(current_namespace)
+        } else if let Some(parent_name) = &self.type_record.parent_name {
+            format!("{}.{}", parent_name, self.nested_type_without_parent(current_namespace))
         } else {
-            self.nested_type_without_parent()
+            self.nested_type_without_parent(current_namespace)
         }
     }
 
-    pub fn nested_type_without_parent(&self) -> String {
+    pub fn nested_type_without_parent(&self, current_namespace: &str) -> String {
         let mut type_name = match &self.base_type() {
             BaseType::Bool => "bool".to_string(),
             BaseType::Int => "int".to_string(),
@@ -132,7 +134,11 @@ impl Property {
             BaseType::Map(k, v) => {
                 let key_property = Property::new(k.clone(), false, "key", &self.options);
                 let value_property = Property::new(v.clone(), false, "value", &self.options);
-                format!("System.Collections.Generic.Dictionary<{}, {}>", key_property.type_name(), value_property.type_name())
+                format!(
+                    "System.Collections.Generic.Dictionary<{}, {}>",
+                    key_property.full_type_name(current_namespace),
+                    value_property.full_type_name(current_namespace)
+                )
             }
         };
 
@@ -148,10 +154,12 @@ impl Property {
     }
 
     pub fn full_type_name(&self, current_namespace: &str) -> String {
-        if let Some(namespace) = self.namespace().take_if(|x| *x != current_namespace) {
-            format!("{}.{}", namespace, self.type_name())
+        if self.repeated() || matches!(self.base_type(), BaseType::Map(..)) {
+            self.type_name(current_namespace)
+        } else if let Some(namespace) = self.namespace().take_if(|x| *x != current_namespace) {
+            format!("{}.{}", namespace, self.type_name(current_namespace))
         } else {
-            self.type_name()
+            self.type_name(current_namespace)
         }
     }
 

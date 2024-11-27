@@ -27,8 +27,7 @@ public class TestService : TestApi.TestService.TestServiceBase
 
     public override Task<EmptyTest> Primative(PrimativeTest request, ServerCallContext context)
     {
-        var model = request.ToModel();
-        return Task.FromResult(new EmptyTest());
+        throw new RpcException(new Status(StatusCode.Unimplemented, ""));
     }
 
     public override Task<EmptyTest> Nullable(NullableTest request, ServerCallContext context)

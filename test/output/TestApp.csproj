@@ -17,7 +17,6 @@
     <PackageReference Include="Grpc.AspNetCore" Version="2.67.0" />
     <PackageReference Include="Grpc.AspNetCore.Web" Version="2.67.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.67.0" />
-    <PackageReference Include="Grpc.StatusProto" Version="2.67.0" />
     <PackageReference Include="Grpc.Tools" Version="2.67.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -27,7 +26,7 @@
 
   <ItemGroup>
     <Protobuf Include="..\input\test.proto" ProtoRoot="..\input" GrpcServices="Server" />
-    <Protobuf Include="..\input\**\*.proto" ProtoRokot="..\input" GrpcServices="None" />
+    <Protobuf Include="..\input\api\options.proto" ProtoRoot="..\input" GrpcServices="None" />
   </ItemGroup>
 
   <ItemGroup>
